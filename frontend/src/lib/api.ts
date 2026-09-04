@@ -47,7 +47,15 @@ export const fetchCameras = () => get<CameraResponse[]>("/cameras");
 
 export async function requestLiveKitToken(role: "publisher" | "viewer"): Promise<LiveKitCredentials> {
   const response = await fetch(`${baseUrl()}/api/livekit/token`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role }) });
-  if (!response.ok) throw new Error(`Live video is unavailable (${response.status})`);
+  if (!response.ok) {
+    let detail = `Live video is unavailable (${response.status})`;
+    try {
+      const body = await response.json() as { detail?: string };
+      if (body.detail) detail = body.detail;
+    } catch {
+    }
+    throw new Error(detail);
+  }
   return response.json() as Promise<LiveKitCredentials>;
 }
 

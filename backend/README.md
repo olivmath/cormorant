@@ -77,6 +77,11 @@ As configurações usam o prefixo `CORMORANT_`:
 | `CORMORANT_CONFIDENCE_THRESHOLD` | `0.4` | Confiança mínima para uma pessoa ser considerada. |
 | `CORMORANT_PROCESS_EVERY_N_FRAMES` | `3` | Processa um a cada N frames. |
 | `CORMORANT_CORS_ORIGINS` | `http://localhost:3000` e frontend público do Codespaces | Origens permitidas, separadas por vírgula. |
+| `CORMORANT_LIVEKIT_URL` | vazio | URL `wss://` do projeto LiveKit. |
+| `CORMORANT_LIVEKIT_API_KEY` | vazio | Chave da API LiveKit. |
+| `CORMORANT_LIVEKIT_API_SECRET` | vazio | Segredo da API LiveKit. |
+
+As variáveis podem ser definidas no ambiente ou em `backend/.env`. Ao executar a API a partir de `backend/`, esse arquivo é carregado automaticamente. Não versione o arquivo `.env`.
 
 As câmeras são configuradas em `src/config.py` por meio de `CameraConfig`:
 

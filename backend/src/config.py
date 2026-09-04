@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from pydantic import BaseModel
+from pydantic import AliasChoices, BaseModel, Field
 
 
 class CameraConfig(BaseModel):
@@ -20,11 +20,23 @@ class Settings(BaseSettings):
         "https://congenial-fiesta-jqpq7gpqj7v35v99-3000.app.github.dev"
     )
     cameras: list[CameraConfig] = []
-    livekit_url: str = ""
-    livekit_api_key: str = ""
-    livekit_api_secret: str = ""
+    livekit_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("CORMORANT_LIVEKIT_URL", "LIVEKIT_URL"),
+    )
+    livekit_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("CORMORANT_LIVEKIT_API_KEY", "LIVEKIT_API_KEY"),
+    )
+    livekit_api_secret: str = Field(
+        default="",
+        validation_alias=AliasChoices("CORMORANT_LIVEKIT_API_SECRET", "LIVEKIT_API_SECRET"),
+    )
 
-    model_config = {"env_prefix": "CORMORANT_"}
+    model_config = {
+        "env_file": ".env",
+        "env_prefix": "CORMORANT_",
+    }
 
 
 settings = Settings()
