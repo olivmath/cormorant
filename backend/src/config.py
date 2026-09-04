@@ -19,10 +19,10 @@ class Settings(BaseSettings):
         "http://localhost:3000,"
         "https://congenial-fiesta-jqpq7gpqj7v35v99-3000.app.github.dev"
     )
-    cameras: list[CameraConfig] = [
-        CameraConfig(camera_id=0, index=0, label="Mac Built-in"),
-        CameraConfig(camera_id=1, index=1, label="iPhone (Continuity)"),
-    ]
+    cameras: list[CameraConfig] = []
+    livekit_url: str = ""
+    livekit_api_key: str = ""
+    livekit_api_secret: str = ""
 
     model_config = {"env_prefix": "CORMORANT_"}
 

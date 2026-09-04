@@ -101,6 +101,24 @@ export CORMORANT_PROCESS_EVERY_N_FRAMES=2
 ./scripts/start.sh
 ```
 
+## Câmera móvel ao vivo (POC)
+
+Crie um projeto no LiveKit Cloud e copie as credenciais para `backend/.env` a partir de `backend/.env.example`.
+
+```bash
+cd backend
+set -a && source .env && set +a
+uv run uvicorn src.main:app --host 0.0.0.0 --port 8000
+```
+
+Inicie o frontend apontando para a API pública e abra a rota abaixo no celular:
+
+```text
+https://<frontend>/camera
+```
+
+Toque em **Iniciar transmissão**. O painel principal exibe o vídeo assim que o celular publicar a câmera.
+
 ## API
 
 Todos os endpoints REST ficam sob `/api`.

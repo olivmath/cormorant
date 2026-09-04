@@ -2,6 +2,7 @@ import { CameraStatus } from "@/components/camera-status";
 import { DailyChart } from "@/components/daily-chart";
 import { HourlyChart } from "@/components/hourly-chart";
 import { KpiCards } from "@/components/kpi-cards";
+import { LiveCamera } from "@/components/live-camera";
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
           <CameraStatus />
         </header>
         <KpiCards />
+        <LiveCamera />
         <div className="grid gap-6 xl:grid-cols-2"><HourlyChart /><DailyChart /></div>
       </div>
     </main>

@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from src.config import settings
 from src.schemas import (
     CameraResponse,
+    CameraCalibration,
     DailyBucket,
     EventResponse,
     HourlyBucket,
@@ -39,9 +40,25 @@ def init_db() -> None:
                 is_online INTEGER NOT NULL,
                 last_seen TEXT
             );
+            CREATE TABLE IF NOT EXISTS camera_calibration (
+                camera_id INTEGER PRIMARY KEY, start_x REAL NOT NULL, start_y REAL NOT NULL,
+                end_x REAL NOT NULL, end_y REAL NOT NULL
+            );
             CREATE INDEX IF NOT EXISTS idx_events_timestamp ON crossing_events(timestamp);
             """
         )
+
+
+def get_mobile_calibration() -> CameraCalibration | None:
+    with _connection() as conn:
+        row = conn.execute("SELECT * FROM camera_calibration WHERE camera_id = 100").fetchone()
+    return CameraCalibration(start=(row["start_x"], row["start_y"]), end=(row["end_x"], row["end_y"])) if row else None
+
+
+def save_mobile_calibration(calibration: CameraCalibration) -> CameraCalibration:
+    with _connection() as conn:
+        conn.execute("INSERT INTO camera_calibration VALUES (100, ?, ?, ?, ?) ON CONFLICT(camera_id) DO UPDATE SET start_x=excluded.start_x, start_y=excluded.start_y, end_x=excluded.end_x, end_y=excluded.end_y", (*calibration.start, *calibration.end))
+    return calibration
 
 
 def insert_event(

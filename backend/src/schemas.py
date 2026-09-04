@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -35,7 +36,6 @@ class EventResponse(BaseModel):
     camera_id: int
     confidence: float
 
-
 class CameraResponse(BaseModel):
     camera_id: int
     label: str
@@ -50,3 +50,18 @@ class LiveUpdate(BaseModel):
     timestamp: datetime
     today_in: int
     today_out: int
+
+
+class LiveKitTokenRequest(BaseModel):
+    role: Literal["publisher", "viewer"]
+
+
+class LiveKitTokenResponse(BaseModel):
+    server_url: str
+    token: str
+    room: str
+
+
+class CameraCalibration(BaseModel):
+    start: tuple[float, float]
+    end: tuple[float, float]

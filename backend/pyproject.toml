@@ -11,6 +11,8 @@ dependencies = [
     "opencv-python>=4.10.0",
     "pydantic-settings>=2.5.0",
     "aiosqlite>=0.20.0",
+    "livekit-api>=1.0.0",
+    "livekit>=1.0.0",
 ]
 
 [project.optional-dependencies]
