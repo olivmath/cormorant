@@ -2,6 +2,8 @@
 
 import logging
 
+import numpy as np
+
 try:
     from ultralytics.solutions import ObjectCounter
 except ModuleNotFoundError:  # pragma: no cover - exercised through mocked integrations
@@ -46,7 +48,7 @@ class SolutionsCounter:
         self._prev_out = 0
 
     def process_frame(self, frame) -> list[dict]:
-        results = self._counter.process(frame)
+        results = self._counter.process(np.ascontiguousarray(frame))
         self.last_people_count = len(getattr(self._counter, "boxes", []) or [])
         self.last_tracked_people_count = self.last_people_count
         new_in = max(0, results.in_count - self._prev_in)
