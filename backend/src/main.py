@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +12,7 @@ from src.livekit_worker import LiveKitWorker
 from src.routes import manager, router
 
 workers: list[CameraWorker] = []
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -18,12 +20,16 @@ async def lifespan(_app: FastAPI):
     init_db()
     livekit_worker = None
     if configured():
+        logger.info("cormorant.livekit.enabled")
         livekit_worker = LiveKitWorker(manager, settings.livekit_url)
         await livekit_worker.start()
+    else:
+        logger.warning("cormorant.livekit.disabled missing_configuration=true")
     for cam in settings.cameras:
         worker = CameraWorker(cam, manager)
         worker.start()
         workers.append(worker)
+    logger.info("cormorant.capture_workers.started count=%s", len(workers))
     yield
     for worker in workers:
         worker.stop()

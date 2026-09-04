@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
 
 from src.database import (
@@ -23,28 +25,36 @@ from src.ws_manager import ConnectionManager
 
 router = APIRouter(prefix="/api")
 manager = ConnectionManager()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/livekit/token", response_model=LiveKitTokenResponse)
 def livekit_token(request: LiveKitTokenRequest):
     if not configured():
+        logger.warning("cormorant.api.livekit_token_rejected role=%s reason=not_configured", request.role)
         raise HTTPException(status_code=503, detail="LiveKit is not configured")
+    logger.info("cormorant.api.livekit_token_issued role=%s", request.role)
     return create_room_token(request.role)
 
 
 @router.get("/cameras/mobile/calibration", response_model=CameraCalibration | None)
 def mobile_calibration():
-    return get_mobile_calibration()
+    calibration = get_mobile_calibration()
+    logger.info("cormorant.api.mobile_calibration_read configured=%s", calibration is not None)
+    return calibration
 
 
 @router.put("/cameras/mobile/calibration", response_model=CameraCalibration)
 def set_mobile_calibration(calibration: CameraCalibration):
+    logger.info("cormorant.api.mobile_calibration_saved start=%s end=%s", calibration.start, calibration.end)
     return save_mobile_calibration(calibration)
 
 
 @router.get("/stats", response_model=StatsResponse)
 def stats(period: str = Query("today", pattern="^(today|hour|week|month)$")):
-    return get_stats(period)
+    result = get_stats(period)
+    logger.info("cormorant.api.stats period=%s count_in=%s count_out=%s net=%s", period, result.count_in, result.count_out, result.net)
+    return result
 
 
 @router.get("/stats/hourly", response_model=TrendResponse)
@@ -59,12 +69,16 @@ def daily():
 
 @router.get("/events", response_model=list[EventResponse])
 def events(limit: int = Query(50, ge=1, le=500)):
-    return get_recent_events(limit)
+    result = get_recent_events(limit)
+    logger.info("cormorant.api.events limit=%s returned=%s", limit, len(result))
+    return result
 
 
 @router.get("/cameras", response_model=list[CameraResponse])
 def cameras():
-    return get_cameras()
+    result = get_cameras()
+    logger.info("cormorant.api.cameras returned=%s online=%s", len(result), sum(camera.is_online for camera in result))
+    return result
 
 
 @router.websocket("/ws/live")

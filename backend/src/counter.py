@@ -20,6 +20,8 @@ class FootfallCounter:
         self.line_zone = sv.LineZone(start=point(*line_start), end=point(*line_end))
         self._in_count = 0
         self._out_count = 0
+        self.last_people_count = 0
+        self.last_tracked_people_count = 0
 
     def process_frame(self, frame) -> list[dict]:
         results = self.model(frame, verbose=False)
@@ -31,7 +33,9 @@ class FootfallCounter:
         confident = ([value >= settings.confidence_threshold for value in confidences]
                      if isinstance(confidences, list) else confidences >= settings.confidence_threshold)
         detections = detections[confident]
+        self.last_people_count = len(detections)
         detections = self.tracker.update_with_detections(detections)
+        self.last_tracked_people_count = len(detections)
         triggered = self.line_zone.trigger(detections)
         entered, exited = self._triggered_detections(detections, triggered)
         return [self._event("IN", detection) for detection in entered] + [

@@ -123,6 +123,24 @@ Uma mensagem do WebSocket tem o formato:
 }
 ```
 
+## Diagnóstico de contagem móvel
+
+Inicie a API com nível `INFO` e acompanhe somente as mensagens do Cormorant:
+
+```bash
+uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000 --log-level info |& grep cormorant
+```
+
+| Log | Significado | Próxima ação se não aparecer |
+| --- | --- | --- |
+| `livekit.worker_connected` | O worker entrou na sala LiveKit. | Verifique URL, chave e segredo LiveKit. |
+| `livekit.track_subscribed ... accepted=True` | O vídeo do celular chegou ao worker. | Confirme que o celular iniciou a transmissão. |
+| `counting.counter_ready` | A linha calibrada foi convertida para pixels do vídeo. | Calibre a linha no dashboard. |
+| `counting.heartbeat ... people=X tracked=Y` | O modelo está recebendo frames; `people` é a detecção após o limiar e `tracked` é o tracking ativo. | Se ambos forem `0`, reveja enquadramento, iluminação e `CORMORANT_CONFIDENCE_THRESHOLD`. |
+| `counting.crossing` | Um IN ou OUT foi salvo e seus totais foram recalculados. | Este é o único log que deve aumentar os indicadores. |
+| `counting.stream_failed` | A leitura do vídeo, modelo ou contagem falhou. | Leia a exceção completa que acompanha o log. |
+| `api.stats` | O dashboard consultou os totais retornados pelo SQLite. | Compare os valores com o último `counting.crossing`. |
+
 ## Banco de dados
 
 O SQLite é criado automaticamente com as tabelas `crossing_events` e `camera_status`. As conexões usam WAL para permitir leitura enquanto eventos são gravados. O arquivo padrão `footfall.db` fica no diretório em que a API é iniciada e pode ser alterado com `CORMORANT_DB_PATH`.
