@@ -1,6 +1,7 @@
 """Resilient threaded camera capture worker."""
 
 import asyncio
+import logging
 import threading
 import time
 from datetime import UTC, datetime
@@ -11,6 +12,8 @@ from src.config import settings
 from src.counter import FootfallCounter
 from src.database import get_stats, insert_event, update_camera_status
 from src.schemas import LiveUpdate
+
+logger = logging.getLogger(__name__)
 
 
 class _LivePayload(dict):
@@ -31,11 +34,14 @@ class CameraWorker(threading.Thread):
         self._stop_event.set()
 
     def run(self) -> None:
+        logger.info("cormorant.capture.starting camera_id=%s label=%s", self.camera_config.camera_id, self.camera_config.label)
         while not self._stop_event.is_set():
             capture = cv2.VideoCapture(self.camera_config.index, cv2.CAP_AVFOUNDATION)
             if not capture.isOpened():
+                logger.warning("cormorant.capture.open_failed camera_id=%s index=%s", self.camera_config.camera_id, self.camera_config.index)
                 self._offline()
                 continue
+            logger.info("cormorant.capture.connected camera_id=%s", self.camera_config.camera_id)
             update_camera_status(self.camera_config.camera_id, self.camera_config.label, True)
             self._read_camera(capture)
             capture.release()
@@ -52,7 +58,14 @@ class CameraWorker(threading.Thread):
                 self._process(frame)
 
     def _process(self, frame) -> None:
-        for crossing in self.counter.process_frame(frame):
+        crossings = self.counter.process_frame(frame)
+        if crossings:
+            logger.info(
+                "cormorant.capture.crossings camera_id=%s count=%s directions=%s",
+                self.camera_config.camera_id, len(crossings),
+                [c["direction"] for c in crossings],
+            )
+        for crossing in crossings:
             event = insert_event(crossing["direction"], self.camera_config.camera_id,
                                  crossing["tracker_id"], crossing["confidence"])
             try:
@@ -60,6 +73,11 @@ class CameraWorker(threading.Thread):
                 count_in, count_out = stats.count_in, stats.count_out
             except Exception:
                 count_in = count_out = 0
+            logger.info(
+                "cormorant.capture.event_saved direction=%s camera_id=%s tracker_id=%s today_in=%s today_out=%s",
+                crossing["direction"], self.camera_config.camera_id,
+                crossing["tracker_id"], count_in, count_out,
+            )
             update = LiveUpdate(direction=crossing["direction"], camera_id=self.camera_config.camera_id,
                                 timestamp=getattr(event, "timestamp", datetime.now(UTC)),
                                 today_in=count_in, today_out=count_out)

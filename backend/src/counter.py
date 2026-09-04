@@ -1,5 +1,7 @@
 """Person tracking and directional line-crossing detection."""
 
+import logging
+
 try:  # Keep database/API startup usable when vision extras are not installed.
     from ultralytics import YOLO
     import supervision as sv
@@ -8,6 +10,8 @@ except ModuleNotFoundError:  # pragma: no cover - exercised through mocked integ
     sv = None
 
 from src.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class FootfallCounter:
@@ -26,18 +30,29 @@ class FootfallCounter:
     def process_frame(self, frame) -> list[dict]:
         results = self.model(frame, verbose=False)
         detections = sv.Detections.from_ultralytics(results[0])
+        raw_count = len(detections)
         class_ids = detections.class_id
         people = [value == 0 for value in class_ids] if isinstance(class_ids, list) else class_ids == 0
         detections = detections[people]
+        people_count = len(detections)
         confidences = detections.confidence
         confident = ([value >= settings.confidence_threshold for value in confidences]
                      if isinstance(confidences, list) else confidences >= settings.confidence_threshold)
         detections = detections[confident]
         self.last_people_count = len(detections)
+        logger.debug(
+            "cormorant.counter.yolo raw_detections=%s people=%s confident=%s threshold=%.2f",
+            raw_count, people_count, self.last_people_count, settings.confidence_threshold,
+        )
         detections = self.tracker.update_with_detections(detections)
         self.last_tracked_people_count = len(detections)
         triggered = self.line_zone.trigger(detections)
         entered, exited = self._triggered_detections(detections, triggered)
+        if len(entered) or len(exited):
+            logger.info(
+                "cormorant.counter.crossing entered=%s exited=%s zone_in=%s zone_out=%s",
+                len(entered), len(exited), self.line_zone.in_count, self.line_zone.out_count,
+            )
         return [self._event("IN", detection) for detection in entered] + [
             self._event("OUT", detection) for detection in exited
         ]

@@ -11,6 +11,10 @@ from src.livekit_auth import configured
 from src.livekit_worker import LiveKitWorker
 from src.routes import manager, router
 
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+logging.getLogger("ultralytics").setLevel(logging.WARNING)
+logging.getLogger("livekit").setLevel(logging.WARNING)
+
 workers: list[CameraWorker] = []
 logger = logging.getLogger(__name__)
 
