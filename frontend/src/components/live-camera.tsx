@@ -9,6 +9,7 @@ import {
   saveMobileCalibration,
   type CameraCalibration,
 } from "@/lib/api";
+import { useSetCameraLive } from "@/components/camera-context";
 import { Button } from "@/components/ui/button";
 
 export function LiveCamera() {
@@ -17,6 +18,7 @@ export function LiveCamera() {
   const [calibration, setCalibration] = useState<CameraCalibration | null>(null);
   const [points, setPoints] = useState<[number, number][]>([]);
   const [isCalibrating, setIsCalibrating] = useState(false);
+  const setCameraLive = useSetCameraLive();
 
   useEffect(() => {
     void fetchMobileCalibration().then(setCalibration).catch(() => {});
@@ -30,6 +32,7 @@ export function LiveCamera() {
           if (track.kind === Track.Kind.Video && video.current) {
             track.attach(video.current);
             hasVideo = true;
+            setCameraLive(true);
             setStatus("Câmera ao vivo");
           }
         });
@@ -43,7 +46,7 @@ export function LiveCamera() {
     return () => {
       void room.disconnect();
     };
-  }, []);
+  }, [setCameraLive]);
 
   function startCalibration() {
     setPoints([]);
@@ -117,15 +120,15 @@ export function LiveCamera() {
       >
         <video ref={video} autoPlay muted playsInline className="h-full w-full object-contain" aria-label="Transmissão ao vivo da câmera" />
         {line && (
-          <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-label="Linha de contagem configurada">
-            <line x1={`${line.start[0] * 100}%`} y1={`${line.start[1] * 100}%`} x2={`${line.end[0] * 100}%`} y2={`${line.end[1] * 100}%`} stroke="#19C37D" strokeWidth="4" />
-            <g transform={`translate(${(midpoint[0] + normal.x) * 100} ${(midpoint[1] + normal.y) * 100})`}>
-              <rect x="-18" y="-14" width="36" height="24" rx="5" fill="#19C37D" />
-              <text textAnchor="middle" y="3" fill="#0B1220" fontSize="14" fontWeight="700">IN</text>
+          <svg viewBox="0 0 1000 1000" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full" aria-label="Linha de contagem configurada">
+            <line x1={line.start[0] * 1000} y1={line.start[1] * 1000} x2={line.end[0] * 1000} y2={line.end[1] * 1000} stroke="#19C37D" strokeWidth="4" vectorEffect="non-scaling-stroke" />
+            <g transform={`translate(${(midpoint[0] + normal.x) * 1000} ${(midpoint[1] + normal.y) * 1000})`}>
+              <rect x="-28" y="-14" width="56" height="28" rx="5" fill="#19C37D" />
+              <text textAnchor="middle" y="5" fill="#0B1220" fontSize="18" fontWeight="700">IN</text>
             </g>
-            <g transform={`translate(${(midpoint[0] - normal.x) * 100} ${(midpoint[1] - normal.y) * 100})`}>
-              <rect x="-23" y="-14" width="46" height="24" rx="5" fill="#FF6B6B" />
-              <text textAnchor="middle" y="3" fill="#0B1220" fontSize="14" fontWeight="700">OUT</text>
+            <g transform={`translate(${(midpoint[0] - normal.x) * 1000} ${(midpoint[1] - normal.y) * 1000})`}>
+              <rect x="-33" y="-14" width="66" height="28" rx="5" fill="#FF6B6B" />
+              <text textAnchor="middle" y="5" fill="#0B1220" fontSize="18" fontWeight="700">OUT</text>
             </g>
           </svg>
         )}
