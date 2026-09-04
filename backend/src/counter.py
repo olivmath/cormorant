@@ -55,6 +55,12 @@ class FootfallCounter:
                 cx, cy, *xyxy, detections.tracker_id[0],
             )
         triggered = self.line_zone.trigger(detections)
+        if self.last_tracked_people_count > 0:
+            logger.debug(
+                "cormorant.counter.trigger type=%s zone_in=%s zone_out=%s prev_in=%s prev_out=%s triggered=%s",
+                type(triggered).__name__, self.line_zone.in_count, self.line_zone.out_count,
+                self._in_count, self._out_count, triggered,
+            )
         entered, exited = self._triggered_detections(detections, triggered)
         if len(entered) or len(exited):
             logger.info(
