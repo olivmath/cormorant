@@ -37,8 +37,10 @@ O script instala as dependências do backend e do dashboard. Na primeira execuç
 Antes de iniciar a operação, defina a linha virtual que separa entrada de saída para cada câmera:
 
 ```bash
-python3 scripts/calibrate.py
+uv run --directory backend python ../scripts/calibrate.py
 ```
+
+Se o setup foi feito com `venv`, use `backend/.venv/bin/python scripts/calibrate.py` a partir da raiz.
 
 | Atalho | Ação |
 | --- | --- |

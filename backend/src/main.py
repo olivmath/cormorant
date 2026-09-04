@@ -30,7 +30,7 @@ app = FastAPI(title="Cormorant", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[origin.strip() for origin in settings.cors_origins.split(",")],
     allow_methods=["*"],
     allow_headers=["*"],
 )
