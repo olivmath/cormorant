@@ -96,21 +96,17 @@ export function LiveCamera() {
   const normal = { x: (-dy / length) * 0.12, y: (dx / length) * 0.12 };
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-[#DCE3EC] bg-white shadow-[0_10px_30px_rgba(11,18,32,0.06)]">
-      <div className="flex flex-col gap-4 border-b border-[#DCE3EC] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-[#19C37D]" aria-hidden="true" />
-            <h2 className="font-semibold tracking-[-0.02em]">Câmera ao vivo</h2>
-          </div>
-          <p id="camera-status" className="mt-1 text-sm text-slate-600" aria-live="polite">{status}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+    <section className="overflow-hidden rounded-xl border border-border bg-white">
+      <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+        <p id="camera-status" className="text-sm text-muted-foreground" aria-live="polite">
+          {status}
+        </p>
+        <div className="flex gap-2">
           <Button size="sm" variant="outline" disabled={!calibration} onClick={flipDirection}>
             Inverter IN/OUT
           </Button>
           <Button size="sm" onClick={startCalibration}>
-            Calibrar linha
+            Calibrar
           </Button>
         </div>
       </div>
