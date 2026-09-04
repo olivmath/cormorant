@@ -38,27 +38,29 @@ class SolutionsCounter:
                  detector_name: str = DEFAULT_DETECTOR) -> None:
         if ObjectCounter is None:
             raise RuntimeError("Install ultralytics to use SolutionsCounter")
-        weights = DETECTOR_WEIGHTS.get(detector_name, DETECTOR_WEIGHTS[DEFAULT_DETECTOR])
+        self._weights = DETECTOR_WEIGHTS.get(detector_name, DETECTOR_WEIGHTS[DEFAULT_DETECTOR])
         self.detector_name = detector_name
         self.line_start = line_start
         self.line_end = line_end
-        self._counter = ObjectCounter(model=weights, region=_band_region(line_start, line_end),
-                                       classes=[PERSON_CLASS_ID], show=False, verbose=False)
+        self._counter = self._build_counter(line_start, line_end)
         self._prev_in = 0
         self._prev_out = 0
         self._next_id = 0
         self.last_people_count = 0
         self.last_tracked_people_count = 0
 
+    def _build_counter(self, line_start: tuple[int, int], line_end: tuple[int, int]) -> "ObjectCounter":
+        return ObjectCounter(model=self._weights, region=_band_region(line_start, line_end),
+                             classes=[PERSON_CLASS_ID], show=False, verbose=False)
+
     def update_line(self, line_start: tuple[int, int], line_end: tuple[int, int]) -> None:
+        # Rebuilds the whole ObjectCounter, not just the region: its tracker keeps a
+        # frame-size-dependent motion-compensation buffer that breaks silently
+        # ("GMC failed, falling back to identity") if the source resolution changes mid-stream.
         logger.info("cormorant.solutions_counter.line_updated line_start=%s line_end=%s", line_start, line_end)
         self.line_start = line_start
         self.line_end = line_end
-        self._counter.region = _band_region(line_start, line_end)
-        self._counter.initialize_region()
-        self._counter.in_count = 0
-        self._counter.out_count = 0
-        self._counter.counted_ids.clear()
+        self._counter = self._build_counter(line_start, line_end)
         self._prev_in = 0
         self._prev_out = 0
 
