@@ -14,6 +14,21 @@ from src.detector import DEFAULT_DETECTOR, DETECTOR_WEIGHTS
 logger = logging.getLogger(__name__)
 
 PERSON_CLASS_ID = 0
+BAND_HALF_WIDTH_PX = 30  # widens the crossing line into a band, more forgiving with low-fps sampling
+
+
+def _band_region(line_start: tuple[int, int], line_end: tuple[int, int]) -> list[tuple[int, int]]:
+    """Turn a 2-point line into a 4-point rectangle straddling it, so a fast-moving person
+    is more likely to land inside the region on at least one processed frame."""
+    dx, dy = line_end[0] - line_start[0], line_end[1] - line_start[1]
+    length = max((dx ** 2 + dy ** 2) ** 0.5, 1e-6)
+    ox, oy = -dy / length * BAND_HALF_WIDTH_PX, dx / length * BAND_HALF_WIDTH_PX
+    return [
+        (int(line_start[0] + ox), int(line_start[1] + oy)),
+        (int(line_end[0] + ox), int(line_end[1] + oy)),
+        (int(line_end[0] - ox), int(line_end[1] - oy)),
+        (int(line_start[0] - ox), int(line_start[1] - oy)),
+    ]
 
 
 class SolutionsCounter:
@@ -27,7 +42,7 @@ class SolutionsCounter:
         self.detector_name = detector_name
         self.line_start = line_start
         self.line_end = line_end
-        self._counter = ObjectCounter(model=weights, region=[line_start, line_end],
+        self._counter = ObjectCounter(model=weights, region=_band_region(line_start, line_end),
                                        classes=[PERSON_CLASS_ID], show=False, verbose=False)
         self._prev_in = 0
         self._prev_out = 0
@@ -39,7 +54,7 @@ class SolutionsCounter:
         logger.info("cormorant.solutions_counter.line_updated line_start=%s line_end=%s", line_start, line_end)
         self.line_start = line_start
         self.line_end = line_end
-        self._counter.region = [line_start, line_end]
+        self._counter.region = _band_region(line_start, line_end)
         self._counter.initialize_region()
         self._counter.in_count = 0
         self._counter.out_count = 0

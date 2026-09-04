@@ -54,7 +54,7 @@ class LiveKitWorker:
         try:
             async for event in stream:
                 frame_number += 1
-                if frame_number % 3:
+                if frame_number % 2:
                     continue
                 frame = event.frame
                 calibration = get_mobile_calibration()

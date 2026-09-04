@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     db_path: str = "footfall.db"
     yolo_model: str = "yolov8s.pt"
     confidence_threshold: float = 0.4
-    process_every_n_frames: int = 3
+    process_every_n_frames: int = 2
     cors_origins: str = (
         "http://localhost:3000,"
         "https://congenial-fiesta-jqpq7gpqj7v35v99-3000.app.github.dev"
