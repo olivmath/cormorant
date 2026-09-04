@@ -3,22 +3,23 @@
 import logging
 
 try:  # Keep database/API startup usable when vision extras are not installed.
-    from ultralytics import YOLO
     import supervision as sv
 except ModuleNotFoundError:  # pragma: no cover - exercised through mocked integrations
-    YOLO = None
     sv = None
 
 from src.config import settings
+from src.detector import DEFAULT_DETECTOR, load_model
 
 logger = logging.getLogger(__name__)
 
 
 class FootfallCounter:
-    def __init__(self, line_start: tuple[int, int], line_end: tuple[int, int]) -> None:
-        if YOLO is None or sv is None:
+    def __init__(self, line_start: tuple[int, int], line_end: tuple[int, int],
+                 detector_name: str = DEFAULT_DETECTOR) -> None:
+        if sv is None:
             raise RuntimeError("Install ultralytics and supervision to use FootfallCounter")
-        self.model = YOLO(settings.yolo_model)
+        self.detector_name = detector_name
+        self.model = load_model(detector_name)
         self.tracker = sv.ByteTrack()
         self._point = getattr(sv, "Point", lambda x, y: (x, y))
         self.line_zone = sv.LineZone(start=self._point(*line_start), end=self._point(*line_end))
@@ -26,6 +27,9 @@ class FootfallCounter:
         self._out_count = 0
         self.last_people_count = 0
         self.last_tracked_people_count = 0
+        self.line_start = line_start
+        self.line_end = line_end
+        self._frame_count = 0
 
     def update_line(self, line_start: tuple[int, int], line_end: tuple[int, int]) -> None:
         """Recreate the line zone (e.g. when the source frame resolution changes)."""
@@ -36,47 +40,38 @@ class FootfallCounter:
         self.line_zone = sv.LineZone(start=self._point(*line_start), end=self._point(*line_end))
         self._in_count = 0
         self._out_count = 0
+        self.line_start = line_start
+        self.line_end = line_end
 
     def process_frame(self, frame) -> list[dict]:
+        self._frame_count += 1
         results = self.model(frame, verbose=False)
         detections = sv.Detections.from_ultralytics(results[0])
-        raw_count = len(detections)
         class_ids = detections.class_id
         people = [value == 0 for value in class_ids] if isinstance(class_ids, list) else class_ids == 0
         detections = detections[people]
-        people_count = len(detections)
         confidences = detections.confidence
         confident = ([value >= settings.confidence_threshold for value in confidences]
                      if isinstance(confidences, list) else confidences >= settings.confidence_threshold)
         detections = detections[confident]
         self.last_people_count = len(detections)
-        logger.debug(
-            "cormorant.counter.yolo raw_detections=%s people=%s confident=%s threshold=%.2f",
-            raw_count, people_count, self.last_people_count, settings.confidence_threshold,
-        )
         detections = self.tracker.update_with_detections(detections)
         self.last_tracked_people_count = len(detections)
-        if self.last_tracked_people_count > 0:
+        if self.last_tracked_people_count > 0 and self._frame_count % 15 == 0:
             xyxy = detections.xyxy[0]
             cx = (xyxy[0] + xyxy[2]) / 2
-            cy = (xyxy[1] + xyxy[3]) / 2
-            logger.debug(
-                "cormorant.counter.tracker cx=%.1f cy=%.1f bbox=[%.0f,%.0f,%.0f,%.0f] tid=%s",
-                cx, cy, *xyxy, detections.tracker_id[0],
+            line_x = (self.line_start[0] + self.line_end[0]) / 2
+            logger.info(
+                "🚶 [%s] pessoa vista: posição x=%.0f | linha em x=%.0f | %s",
+                self.detector_name, cx, line_x,
+                "à direita da linha ➡️" if cx > line_x else "⬅️ à esquerda da linha",
             )
         triggered = self.line_zone.trigger(detections)
-        if self.last_tracked_people_count > 0:
-            logger.debug(
-                "cormorant.counter.trigger type=%s zone_in=%s zone_out=%s prev_in=%s prev_out=%s triggered=%s",
-                type(triggered).__name__, self.line_zone.in_count, self.line_zone.out_count,
-                self._in_count, self._out_count, triggered,
-            )
         entered, exited = self._triggered_detections(detections, triggered)
-        if len(entered) or len(exited):
-            logger.info(
-                "cormorant.counter.crossing entered=%s exited=%s zone_in=%s zone_out=%s",
-                len(entered), len(exited), self.line_zone.in_count, self.line_zone.out_count,
-            )
+        if len(entered):
+            logger.info("✅ ENTROU (IN) — total hoje: entradas=%s", self.line_zone.in_count)
+        if len(exited):
+            logger.info("✅ SAIU (OUT) — total hoje: saídas=%s", self.line_zone.out_count)
         return [self._event("IN", detection) for detection in entered] + [
             self._event("OUT", detection) for detection in exited
         ]

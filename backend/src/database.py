@@ -4,6 +4,7 @@ import sqlite3
 from datetime import UTC, datetime, timedelta
 
 from src.config import settings
+from src.detector import DEFAULT_DETECTOR
 from src.schemas import (
     CameraResponse,
     CameraCalibration,
@@ -44,9 +45,32 @@ def init_db() -> None:
                 camera_id INTEGER PRIMARY KEY, start_x REAL NOT NULL, start_y REAL NOT NULL,
                 end_x REAL NOT NULL, end_y REAL NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS detector_config (
+                id INTEGER PRIMARY KEY CHECK(id = 1), model_name TEXT NOT NULL
+            );
             CREATE INDEX IF NOT EXISTS idx_events_timestamp ON crossing_events(timestamp);
             """
         )
+        conn.execute(
+            "INSERT OR IGNORE INTO detector_config (id, model_name) VALUES (1, ?)",
+            (DEFAULT_DETECTOR,),
+        )
+
+
+def get_detector_model() -> str:
+    with _connection() as conn:
+        row = conn.execute("SELECT model_name FROM detector_config WHERE id = 1").fetchone()
+    return row["model_name"] if row else DEFAULT_DETECTOR
+
+
+def save_detector_model(model_name: str) -> str:
+    with _connection() as conn:
+        conn.execute(
+            "INSERT INTO detector_config (id, model_name) VALUES (1, ?) "
+            "ON CONFLICT(id) DO UPDATE SET model_name = excluded.model_name",
+            (model_name,),
+        )
+    return model_name
 
 
 def get_mobile_calibration() -> CameraCalibration | None:

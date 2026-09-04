@@ -5,14 +5,19 @@ from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconn
 from src.database import (
     get_cameras,
     get_daily_trend,
+    get_detector_model,
     get_hourly_trend,
     get_recent_events,
     get_stats,
     get_mobile_calibration,
+    save_detector_model,
     save_mobile_calibration,
 )
+from src.detector import DETECTOR_WEIGHTS
 from src.schemas import (
     CameraResponse,
+    DetectorConfig,
+    DetectorConfigUpdate,
     EventResponse,
     LiveKitTokenRequest,
     LiveKitTokenResponse,
@@ -48,6 +53,19 @@ def mobile_calibration():
 def set_mobile_calibration(calibration: CameraCalibration):
     logger.info("cormorant.api.mobile_calibration_saved start=%s end=%s", calibration.start, calibration.end)
     return save_mobile_calibration(calibration)
+
+
+@router.get("/detector", response_model=DetectorConfig)
+def detector():
+    return DetectorConfig(model_name=get_detector_model(), available_models=sorted(DETECTOR_WEIGHTS))
+
+
+@router.put("/detector", response_model=DetectorConfig)
+def set_detector(update: DetectorConfigUpdate):
+    if update.model_name not in DETECTOR_WEIGHTS:
+        raise HTTPException(status_code=400, detail=f"Unknown detector model: {update.model_name!r}")
+    logger.info("cormorant.api.detector_changed model_name=%s", update.model_name)
+    return DetectorConfig(model_name=save_detector_model(update.model_name), available_models=sorted(DETECTOR_WEIGHTS))
 
 
 @router.get("/stats", response_model=StatsResponse)

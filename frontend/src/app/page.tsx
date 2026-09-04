@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CameraLiveProvider } from "@/components/camera-context";
 import { CameraStatus } from "@/components/camera-status";
 import { DailyChart } from "@/components/daily-chart";
+import { DetectorSelect } from "@/components/detector-select";
 import { HourlyChart } from "@/components/hourly-chart";
 import { KpiSidebar } from "@/components/kpi-sidebar";
 import { LiveCamera } from "@/components/live-camera";
@@ -18,6 +19,7 @@ export default function Home() {
               <span className="text-sm text-white/60">Loja principal</span>
             </div>
             <div className="flex items-center gap-3">
+              <DetectorSelect />
               <CameraStatus />
               <Link
                 href="/camera"

@@ -59,6 +59,15 @@ export async function requestLiveKitToken(role: "publisher" | "viewer"): Promise
   return response.json() as Promise<LiveKitCredentials>;
 }
 
+export type DetectorConfig = { model_name: string; available_models: string[] };
+
+export const fetchDetector = () => get<DetectorConfig>("/detector");
+export async function saveDetector(model_name: string) {
+  const response = await fetch(`${baseUrl()}/api/detector`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model_name }) });
+  if (!response.ok) throw new Error("Could not save detector model");
+  return response.json() as Promise<DetectorConfig>;
+}
+
 export const fetchMobileCalibration = () => get<CameraCalibration | null>("/cameras/mobile/calibration");
 export async function saveMobileCalibration(calibration: CameraCalibration) {
   const response = await fetch(`${baseUrl()}/api/cameras/mobile/calibration`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(calibration) });

@@ -7,7 +7,7 @@ import numpy as np
 from livekit import rtc
 
 from src.counter import FootfallCounter
-from src.database import get_mobile_calibration, get_stats, insert_event, update_camera_status
+from src.database import get_detector_model, get_mobile_calibration, get_stats, insert_event, update_camera_status
 from src.livekit_auth import create_room_token
 
 MOBILE_CAMERA_ID = 100
@@ -56,51 +56,43 @@ class LiveKitWorker:
                         logger.warning("cormorant.counting.waiting_for_calibration frames=%s", frame_number)
                     continue
                 frame_size = (frame.width, frame.height)
+                detector_name = get_detector_model()
                 if counter is None:
                     line_start = (int(calibration.start[0] * frame.width), int(calibration.start[1] * frame.height))
                     line_end = (int(calibration.end[0] * frame.width), int(calibration.end[1] * frame.height))
-                    counter = FootfallCounter(
-                        line_start,
-                        line_end,
-                    )
+                    counter = FootfallCounter(line_start, line_end, detector_name=detector_name)
                     counter_frame_size = frame_size
                     logger.info(
-                        "cormorant.counting.counter_ready frame_width=%s frame_height=%s line_start=%s line_end=%s",
-                        frame.width,
-                        frame.height,
-                        line_start,
-                        line_end,
+                        "🎥 câmera pronta: resolução=%sx%s | modelo=%s | linha de contagem=%s→%s",
+                        frame.width, frame.height, detector_name, line_start, line_end,
                     )
                 elif frame_size != counter_frame_size:
                     line_start = (int(calibration.start[0] * frame.width), int(calibration.start[1] * frame.height))
                     line_end = (int(calibration.end[0] * frame.width), int(calibration.end[1] * frame.height))
                     logger.warning(
-                        "cormorant.counting.resolution_changed old=%s new=%s line_start=%s line_end=%s",
+                        "📐 resolução do stream mudou (%s → %s) — recalculando a linha para %s→%s",
                         counter_frame_size, frame_size, line_start, line_end,
                     )
                     counter.update_line(line_start, line_end)
                     counter_frame_size = frame_size
+                elif detector_name != counter.detector_name:
+                    logger.info("🔄 trocando modelo de detecção: %s → %s", counter.detector_name, detector_name)
+                    counter = FootfallCounter(counter.line_start, counter.line_end, detector_name=detector_name)
                 image = np.frombuffer(frame.data, dtype=np.uint8).reshape(frame.height, frame.width, 4)[:, :, :3]
                 update_camera_status(MOBILE_CAMERA_ID, "Câmera móvel", True)
                 crossings = await asyncio.to_thread(counter.process_frame, image)
                 if frame_number % 90 == 0:
                     logger.info(
-                        "cormorant.counting.heartbeat frames=%s people=%s tracked=%s crossings=%s",
-                        frame_number,
-                        counter.last_people_count,
-                        counter.last_tracked_people_count,
-                        len(crossings),
+                        "💓 [%s] frames processados=%s | pessoas detectadas=%s | rastreadas=%s",
+                        counter.detector_name, frame_number, counter.last_people_count, counter.last_tracked_people_count,
                     )
                 for crossing in crossings:
                     event = insert_event(crossing["direction"], MOBILE_CAMERA_ID, crossing["tracker_id"], crossing["confidence"])
                     stats = get_stats()
+                    seta = "entrou ➡️" if crossing["direction"] == "IN" else "⬅️ saiu"
                     logger.info(
-                        "cormorant.counting.crossing direction=%s tracker_id=%s confidence=%.3f today_in=%s today_out=%s",
-                        crossing["direction"],
-                        crossing["tracker_id"],
-                        crossing["confidence"],
-                        stats.count_in,
-                        stats.count_out,
+                        "👤 pessoa %s (confiança=%.0f%%) — hoje: entradas=%s saídas=%s",
+                        seta, crossing["confidence"] * 100, stats.count_in, stats.count_out,
                     )
                     await self.manager.broadcast({"type": "crossing", "direction": crossing["direction"], "camera_id": MOBILE_CAMERA_ID, "timestamp": event.timestamp.isoformat(), "today_in": stats.count_in, "today_out": stats.count_out})
         except Exception:

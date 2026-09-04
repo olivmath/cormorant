@@ -65,3 +65,12 @@ class LiveKitTokenResponse(BaseModel):
 class CameraCalibration(BaseModel):
     start: tuple[float, float]
     end: tuple[float, float]
+
+
+class DetectorConfig(BaseModel):
+    model_name: str
+    available_models: list[str] = []
+
+
+class DetectorConfigUpdate(BaseModel):
+    model_name: str

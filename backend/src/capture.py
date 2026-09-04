@@ -10,7 +10,7 @@ import cv2
 
 from src.config import settings
 from src.counter import FootfallCounter
-from src.database import get_stats, insert_event, update_camera_status
+from src.database import get_detector_model, get_stats, insert_event, update_camera_status
 from src.schemas import LiveUpdate
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,8 @@ class CameraWorker(threading.Thread):
         super().__init__(daemon=True)
         self.camera_config = camera_config
         self.manager = manager
-        self.counter = FootfallCounter(camera_config.line_start, camera_config.line_end)
+        self.counter = FootfallCounter(camera_config.line_start, camera_config.line_end,
+                                       detector_name=get_detector_model())
         self.stop_event = threading.Event()
         self._stop_event = self.stop_event
 
@@ -58,6 +59,10 @@ class CameraWorker(threading.Thread):
                 self._process(frame)
 
     def _process(self, frame) -> None:
+        detector_name = get_detector_model()
+        if detector_name != self.counter.detector_name:
+            logger.info("🔄 câmera %s trocando modelo: %s → %s", self.camera_config.camera_id, self.counter.detector_name, detector_name)
+            self.counter = FootfallCounter(self.counter.line_start, self.counter.line_end, detector_name=detector_name)
         crossings = self.counter.process_frame(frame)
         if crossings:
             logger.info(
