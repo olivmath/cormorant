@@ -10,6 +10,7 @@ from src.counting import create_counter
 from src.database import (
     get_counting_engine,
     get_detector_model,
+    get_inference_size,
     get_mobile_calibration,
     get_stats,
     insert_event,
@@ -65,14 +66,15 @@ class LiveKitWorker:
                 frame_size = (frame.width, frame.height)
                 detector_name = get_detector_model()
                 engine = get_counting_engine()
+                inference_size = get_inference_size()
                 if counter is None:
                     line_start = (int(calibration.start[0] * frame.width), int(calibration.start[1] * frame.height))
                     line_end = (int(calibration.end[0] * frame.width), int(calibration.end[1] * frame.height))
-                    counter = create_counter(line_start, line_end, detector_name, engine)
+                    counter = create_counter(line_start, line_end, detector_name, engine, inference_size)
                     counter_frame_size = frame_size
                     logger.info(
-                        "🎥 câmera pronta: resolução=%sx%s | modelo=%s | engine=%s | linha de contagem=%s→%s",
-                        frame.width, frame.height, detector_name, engine, line_start, line_end,
+                        "🎥 câmera pronta: resolução=%sx%s | modelo=%s | engine=%s | tamanho_inferência=%s | linha de contagem=%s→%s",
+                        frame.width, frame.height, detector_name, engine, inference_size, line_start, line_end,
                     )
                 elif frame_size != counter_frame_size:
                     line_start = (int(calibration.start[0] * frame.width), int(calibration.start[1] * frame.height))
@@ -83,9 +85,10 @@ class LiveKitWorker:
                     )
                     counter.update_line(line_start, line_end)
                     counter_frame_size = frame_size
-                elif detector_name != counter.detector_name or engine != counter.engine:
-                    logger.info("🔄 trocando engine/modelo: %s/%s → %s/%s", counter.engine, counter.detector_name, engine, detector_name)
-                    counter = create_counter(counter.line_start, counter.line_end, detector_name, engine)
+                elif detector_name != counter.detector_name or engine != counter.engine or inference_size != counter.inference_size:
+                    logger.info("🔄 trocando engine/modelo/tamanho: %s/%s/%s → %s/%s/%s",
+                               counter.engine, counter.detector_name, counter.inference_size, engine, detector_name, inference_size)
+                    counter = create_counter(counter.line_start, counter.line_end, detector_name, engine, inference_size)
                 image = np.frombuffer(frame.data, dtype=np.uint8).reshape(frame.height, frame.width, 4)[:, :, :3]
                 update_camera_status(MOBILE_CAMERA_ID, "Câmera móvel", True)
                 crossings = await asyncio.to_thread(counter.process_frame, image)

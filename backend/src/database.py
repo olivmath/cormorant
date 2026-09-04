@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from src.config import settings
 from src.counting import DEFAULT_ENGINE
 from src.detector import DEFAULT_DETECTOR
+from src.inference_size import DEFAULT_INFERENCE_SIZE
 from src.schemas import (
     CameraResponse,
     CameraCalibration,
@@ -52,6 +53,9 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS counting_engine_config (
                 id INTEGER PRIMARY KEY CHECK(id = 1), engine TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS inference_size_config (
+                id INTEGER PRIMARY KEY CHECK(id = 1), size_name TEXT NOT NULL
+            );
             CREATE INDEX IF NOT EXISTS idx_events_timestamp ON crossing_events(timestamp);
             """
         )
@@ -63,6 +67,26 @@ def init_db() -> None:
             "INSERT OR IGNORE INTO counting_engine_config (id, engine) VALUES (1, ?)",
             (DEFAULT_ENGINE,),
         )
+        conn.execute(
+            "INSERT OR IGNORE INTO inference_size_config (id, size_name) VALUES (1, ?)",
+            (DEFAULT_INFERENCE_SIZE,),
+        )
+
+
+def get_inference_size() -> str:
+    with _connection() as conn:
+        row = conn.execute("SELECT size_name FROM inference_size_config WHERE id = 1").fetchone()
+    return row["size_name"] if row else DEFAULT_INFERENCE_SIZE
+
+
+def save_inference_size(size_name: str) -> str:
+    with _connection() as conn:
+        conn.execute(
+            "INSERT INTO inference_size_config (id, size_name) VALUES (1, ?) "
+            "ON CONFLICT(id) DO UPDATE SET size_name = excluded.size_name",
+            (size_name,),
+        )
+    return size_name
 
 
 def get_counting_engine() -> str:

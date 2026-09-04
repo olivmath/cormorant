@@ -5,6 +5,7 @@ import { CountingEngineSelect } from "@/components/counting-engine-select";
 import { DailyChart } from "@/components/daily-chart";
 import { DetectorSelect } from "@/components/detector-select";
 import { HourlyChart } from "@/components/hourly-chart";
+import { InferenceSizeSelect } from "@/components/inference-size-select";
 import { KpiSidebar } from "@/components/kpi-sidebar";
 import { LiveCamera } from "@/components/live-camera";
 import { TodayKpi } from "@/components/today-kpi";
@@ -22,6 +23,7 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <CountingEngineSelect />
               <DetectorSelect />
+              <InferenceSizeSelect />
               <CameraStatus />
               <Link
                 href="/camera"

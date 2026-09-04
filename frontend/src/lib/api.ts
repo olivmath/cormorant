@@ -77,6 +77,15 @@ export async function saveCountingEngine(engine: string) {
   return response.json() as Promise<CountingEngineConfig>;
 }
 
+export type InferenceSizeConfig = { size_name: string; available_sizes: string[] };
+
+export const fetchInferenceSize = () => get<InferenceSizeConfig>("/inference-size");
+export async function saveInferenceSize(size_name: string) {
+  const response = await fetch(`${baseUrl()}/api/inference-size`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ size_name }) });
+  if (!response.ok) throw new Error("Could not save inference size");
+  return response.json() as Promise<InferenceSizeConfig>;
+}
+
 export const fetchMobileCalibration = () => get<CameraCalibration | null>("/cameras/mobile/calibration");
 export async function saveMobileCalibration(calibration: CameraCalibration) {
   const response = await fetch(`${baseUrl()}/api/cameras/mobile/calibration`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(calibration) });

@@ -10,6 +10,7 @@ except ModuleNotFoundError:  # pragma: no cover - exercised through mocked integ
     ObjectCounter = None
 
 from src.detector import DEFAULT_DETECTOR, DETECTOR_WEIGHTS
+from src.inference_size import DEFAULT_INFERENCE_SIZE, resolve_imgsz
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +36,13 @@ class SolutionsCounter:
     """Adapts ObjectCounter's cumulative in/out totals to the same event-list interface as FootfallCounter."""
 
     def __init__(self, line_start: tuple[int, int], line_end: tuple[int, int],
-                 detector_name: str = DEFAULT_DETECTOR) -> None:
+                 detector_name: str = DEFAULT_DETECTOR, inference_size: str = DEFAULT_INFERENCE_SIZE) -> None:
         if ObjectCounter is None:
             raise RuntimeError("Install ultralytics to use SolutionsCounter")
         self._weights = DETECTOR_WEIGHTS.get(detector_name, DETECTOR_WEIGHTS[DEFAULT_DETECTOR])
         self.detector_name = detector_name
+        self.inference_size = inference_size
+        self._imgsz = resolve_imgsz(inference_size)
         self.line_start = line_start
         self.line_end = line_end
         self._counter = self._build_counter(line_start, line_end)
@@ -52,7 +55,7 @@ class SolutionsCounter:
 
     def _build_counter(self, line_start: tuple[int, int], line_end: tuple[int, int]) -> "ObjectCounter":
         return ObjectCounter(model=self._weights, region=_band_region(line_start, line_end),
-                             classes=[PERSON_CLASS_ID], show=False, verbose=False)
+                             classes=[PERSON_CLASS_ID], show=False, verbose=False, imgsz=self._imgsz)
 
     def update_line(self, line_start: tuple[int, int], line_end: tuple[int, int]) -> None:
         # Rebuilds the whole ObjectCounter, not just the region: its tracker keeps a

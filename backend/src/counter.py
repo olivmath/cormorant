@@ -9,16 +9,19 @@ except ModuleNotFoundError:  # pragma: no cover - exercised through mocked integ
 
 from src.config import settings
 from src.detector import DEFAULT_DETECTOR, load_model
+from src.inference_size import DEFAULT_INFERENCE_SIZE, resolve_imgsz
 
 logger = logging.getLogger(__name__)
 
 
 class FootfallCounter:
     def __init__(self, line_start: tuple[int, int], line_end: tuple[int, int],
-                 detector_name: str = DEFAULT_DETECTOR) -> None:
+                 detector_name: str = DEFAULT_DETECTOR, inference_size: str = DEFAULT_INFERENCE_SIZE) -> None:
         if sv is None:
             raise RuntimeError("Install ultralytics and supervision to use FootfallCounter")
         self.detector_name = detector_name
+        self.inference_size = inference_size
+        self._imgsz = resolve_imgsz(inference_size)
         self.model = load_model(detector_name)
         self.tracker = sv.ByteTrack()
         self._point = getattr(sv, "Point", lambda x, y: (x, y))
@@ -45,7 +48,7 @@ class FootfallCounter:
 
     def process_frame(self, frame) -> list[dict]:
         self._frame_count += 1
-        results = self.model(frame, verbose=False)
+        results = self.model(frame, verbose=False, imgsz=self._imgsz)
         detections = sv.Detections.from_ultralytics(results[0])
         class_ids = detections.class_id
         people = [value == 0 for value in class_ids] if isinstance(class_ids, list) else class_ids == 0

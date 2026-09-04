@@ -9,14 +9,17 @@ from src.database import (
     get_daily_trend,
     get_detector_model,
     get_hourly_trend,
+    get_inference_size,
     get_recent_events,
     get_stats,
     get_mobile_calibration,
     save_counting_engine,
     save_detector_model,
+    save_inference_size,
     save_mobile_calibration,
 )
 from src.detector import DETECTOR_WEIGHTS
+from src.inference_size import INFERENCE_SIZES
 from src.schemas import (
     CameraResponse,
     CountingEngineConfig,
@@ -24,6 +27,8 @@ from src.schemas import (
     DetectorConfig,
     DetectorConfigUpdate,
     EventResponse,
+    InferenceSizeConfig,
+    InferenceSizeUpdate,
     LiveKitTokenRequest,
     LiveKitTokenResponse,
     CameraCalibration,
@@ -84,6 +89,19 @@ def set_counting_engine(update: CountingEngineUpdate):
         raise HTTPException(status_code=400, detail=f"Unknown counting engine: {update.engine!r}")
     logger.info("cormorant.api.counting_engine_changed engine=%s", update.engine)
     return CountingEngineConfig(engine=save_counting_engine(update.engine), available_engines=sorted(COUNTING_ENGINES))
+
+
+@router.get("/inference-size", response_model=InferenceSizeConfig)
+def inference_size():
+    return InferenceSizeConfig(size_name=get_inference_size(), available_sizes=sorted(INFERENCE_SIZES))
+
+
+@router.put("/inference-size", response_model=InferenceSizeConfig)
+def set_inference_size(update: InferenceSizeUpdate):
+    if update.size_name not in INFERENCE_SIZES:
+        raise HTTPException(status_code=400, detail=f"Unknown inference size: {update.size_name!r}")
+    logger.info("cormorant.api.inference_size_changed size_name=%s", update.size_name)
+    return InferenceSizeConfig(size_name=save_inference_size(update.size_name), available_sizes=sorted(INFERENCE_SIZES))
 
 
 @router.get("/stats", response_model=StatsResponse)

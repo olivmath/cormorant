@@ -83,3 +83,12 @@ class CountingEngineConfig(BaseModel):
 
 class CountingEngineUpdate(BaseModel):
     engine: str
+
+
+class InferenceSizeConfig(BaseModel):
+    size_name: str
+    available_sizes: list[str] = []
+
+
+class InferenceSizeUpdate(BaseModel):
+    size_name: str
