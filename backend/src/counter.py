@@ -20,12 +20,22 @@ class FootfallCounter:
             raise RuntimeError("Install ultralytics and supervision to use FootfallCounter")
         self.model = YOLO(settings.yolo_model)
         self.tracker = sv.ByteTrack()
-        point = getattr(sv, "Point", lambda x, y: (x, y))
-        self.line_zone = sv.LineZone(start=point(*line_start), end=point(*line_end))
+        self._point = getattr(sv, "Point", lambda x, y: (x, y))
+        self.line_zone = sv.LineZone(start=self._point(*line_start), end=self._point(*line_end))
         self._in_count = 0
         self._out_count = 0
         self.last_people_count = 0
         self.last_tracked_people_count = 0
+
+    def update_line(self, line_start: tuple[int, int], line_end: tuple[int, int]) -> None:
+        """Recreate the line zone (e.g. when the source frame resolution changes)."""
+        logger.info(
+            "cormorant.counter.line_updated line_start=%s line_end=%s",
+            line_start, line_end,
+        )
+        self.line_zone = sv.LineZone(start=self._point(*line_start), end=self._point(*line_end))
+        self._in_count = 0
+        self._out_count = 0
 
     def process_frame(self, frame) -> list[dict]:
         results = self.model(frame, verbose=False)

@@ -42,6 +42,7 @@ class LiveKitWorker:
     async def _consume(self, track) -> None:
         stream = rtc.VideoStream(track, format=rtc.VideoBufferType.RGBA)
         counter = None
+        counter_frame_size = None
         frame_number = 0
         try:
             async for event in stream:
@@ -54,6 +55,7 @@ class LiveKitWorker:
                     if frame_number % 90 == 0:
                         logger.warning("cormorant.counting.waiting_for_calibration frames=%s", frame_number)
                     continue
+                frame_size = (frame.width, frame.height)
                 if counter is None:
                     line_start = (int(calibration.start[0] * frame.width), int(calibration.start[1] * frame.height))
                     line_end = (int(calibration.end[0] * frame.width), int(calibration.end[1] * frame.height))
@@ -61,6 +63,7 @@ class LiveKitWorker:
                         line_start,
                         line_end,
                     )
+                    counter_frame_size = frame_size
                     logger.info(
                         "cormorant.counting.counter_ready frame_width=%s frame_height=%s line_start=%s line_end=%s",
                         frame.width,
@@ -68,6 +71,15 @@ class LiveKitWorker:
                         line_start,
                         line_end,
                     )
+                elif frame_size != counter_frame_size:
+                    line_start = (int(calibration.start[0] * frame.width), int(calibration.start[1] * frame.height))
+                    line_end = (int(calibration.end[0] * frame.width), int(calibration.end[1] * frame.height))
+                    logger.warning(
+                        "cormorant.counting.resolution_changed old=%s new=%s line_start=%s line_end=%s",
+                        counter_frame_size, frame_size, line_start, line_end,
+                    )
+                    counter.update_line(line_start, line_end)
+                    counter_frame_size = frame_size
                 image = np.frombuffer(frame.data, dtype=np.uint8).reshape(frame.height, frame.width, 4)[:, :, :3]
                 update_camera_status(MOBILE_CAMERA_ID, "Câmera móvel", True)
                 crossings = await asyncio.to_thread(counter.process_frame, image)
