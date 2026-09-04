@@ -6,8 +6,15 @@ import logging
 import numpy as np
 from livekit import rtc
 
-from src.counter import FootfallCounter
-from src.database import get_detector_model, get_mobile_calibration, get_stats, insert_event, update_camera_status
+from src.counting import create_counter
+from src.database import (
+    get_counting_engine,
+    get_detector_model,
+    get_mobile_calibration,
+    get_stats,
+    insert_event,
+    update_camera_status,
+)
 from src.livekit_auth import create_room_token
 
 MOBILE_CAMERA_ID = 100
@@ -57,14 +64,15 @@ class LiveKitWorker:
                     continue
                 frame_size = (frame.width, frame.height)
                 detector_name = get_detector_model()
+                engine = get_counting_engine()
                 if counter is None:
                     line_start = (int(calibration.start[0] * frame.width), int(calibration.start[1] * frame.height))
                     line_end = (int(calibration.end[0] * frame.width), int(calibration.end[1] * frame.height))
-                    counter = FootfallCounter(line_start, line_end, detector_name=detector_name)
+                    counter = create_counter(line_start, line_end, detector_name, engine)
                     counter_frame_size = frame_size
                     logger.info(
-                        "🎥 câmera pronta: resolução=%sx%s | modelo=%s | linha de contagem=%s→%s",
-                        frame.width, frame.height, detector_name, line_start, line_end,
+                        "🎥 câmera pronta: resolução=%sx%s | modelo=%s | engine=%s | linha de contagem=%s→%s",
+                        frame.width, frame.height, detector_name, engine, line_start, line_end,
                     )
                 elif frame_size != counter_frame_size:
                     line_start = (int(calibration.start[0] * frame.width), int(calibration.start[1] * frame.height))
@@ -75,9 +83,9 @@ class LiveKitWorker:
                     )
                     counter.update_line(line_start, line_end)
                     counter_frame_size = frame_size
-                elif detector_name != counter.detector_name:
-                    logger.info("🔄 trocando modelo de detecção: %s → %s", counter.detector_name, detector_name)
-                    counter = FootfallCounter(counter.line_start, counter.line_end, detector_name=detector_name)
+                elif detector_name != counter.detector_name or engine != counter.engine:
+                    logger.info("🔄 trocando engine/modelo: %s/%s → %s/%s", counter.engine, counter.detector_name, engine, detector_name)
+                    counter = create_counter(counter.line_start, counter.line_end, detector_name, engine)
                 image = np.frombuffer(frame.data, dtype=np.uint8).reshape(frame.height, frame.width, 4)[:, :, :3]
                 update_camera_status(MOBILE_CAMERA_ID, "Câmera móvel", True)
                 crossings = await asyncio.to_thread(counter.process_frame, image)

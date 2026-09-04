@@ -74,3 +74,12 @@ class DetectorConfig(BaseModel):
 
 class DetectorConfigUpdate(BaseModel):
     model_name: str
+
+
+class CountingEngineConfig(BaseModel):
+    engine: str
+    available_engines: list[str] = []
+
+
+class CountingEngineUpdate(BaseModel):
+    engine: str

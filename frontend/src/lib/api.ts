@@ -68,6 +68,15 @@ export async function saveDetector(model_name: string) {
   return response.json() as Promise<DetectorConfig>;
 }
 
+export type CountingEngineConfig = { engine: string; available_engines: string[] };
+
+export const fetchCountingEngine = () => get<CountingEngineConfig>("/counting-engine");
+export async function saveCountingEngine(engine: string) {
+  const response = await fetch(`${baseUrl()}/api/counting-engine`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ engine }) });
+  if (!response.ok) throw new Error("Could not save counting engine");
+  return response.json() as Promise<CountingEngineConfig>;
+}
+
 export const fetchMobileCalibration = () => get<CameraCalibration | null>("/cameras/mobile/calibration");
 export async function saveMobileCalibration(calibration: CameraCalibration) {
   const response = await fetch(`${baseUrl()}/api/cameras/mobile/calibration`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(calibration) });

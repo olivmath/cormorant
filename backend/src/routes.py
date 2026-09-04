@@ -2,20 +2,25 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
 
+from src.counting import COUNTING_ENGINES
 from src.database import (
     get_cameras,
+    get_counting_engine,
     get_daily_trend,
     get_detector_model,
     get_hourly_trend,
     get_recent_events,
     get_stats,
     get_mobile_calibration,
+    save_counting_engine,
     save_detector_model,
     save_mobile_calibration,
 )
 from src.detector import DETECTOR_WEIGHTS
 from src.schemas import (
     CameraResponse,
+    CountingEngineConfig,
+    CountingEngineUpdate,
     DetectorConfig,
     DetectorConfigUpdate,
     EventResponse,
@@ -66,6 +71,19 @@ def set_detector(update: DetectorConfigUpdate):
         raise HTTPException(status_code=400, detail=f"Unknown detector model: {update.model_name!r}")
     logger.info("cormorant.api.detector_changed model_name=%s", update.model_name)
     return DetectorConfig(model_name=save_detector_model(update.model_name), available_models=sorted(DETECTOR_WEIGHTS))
+
+
+@router.get("/counting-engine", response_model=CountingEngineConfig)
+def counting_engine():
+    return CountingEngineConfig(engine=get_counting_engine(), available_engines=sorted(COUNTING_ENGINES))
+
+
+@router.put("/counting-engine", response_model=CountingEngineConfig)
+def set_counting_engine(update: CountingEngineUpdate):
+    if update.engine not in COUNTING_ENGINES:
+        raise HTTPException(status_code=400, detail=f"Unknown counting engine: {update.engine!r}")
+    logger.info("cormorant.api.counting_engine_changed engine=%s", update.engine)
+    return CountingEngineConfig(engine=save_counting_engine(update.engine), available_engines=sorted(COUNTING_ENGINES))
 
 
 @router.get("/stats", response_model=StatsResponse)

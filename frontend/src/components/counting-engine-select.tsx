@@ -1,26 +1,25 @@
-// chave seletora do modelo de detecção usado pelas câmeras
+// chave seletora do motor de contagem (custom vs ultralytics.solutions)
 "use client";
 
 import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchDetector, saveDetector } from "@/lib/api";
+import { fetchCountingEngine, saveCountingEngine } from "@/lib/api";
 
 const LABELS: Record<string, string> = {
-  yolov8s: "YOLOv8s (rápido)",
-  yolov8l: "YOLOv8l (preciso)",
-  rtdetr: "RT-DETR (preciso)",
+  custom: "Engine própria",
+  ultralytics: "Ultralytics Solutions",
 };
 
-export function DetectorSelect() {
+export function CountingEngineSelect() {
   const [current, setCurrent] = useState<string | null>(null);
   const [options, setOptions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchDetector()
+    fetchCountingEngine()
       .then((config) => {
-        setCurrent(config.model_name);
-        setOptions(config.available_models);
+        setCurrent(config.engine);
+        setOptions(config.available_engines);
       })
       .catch(() => {});
   }, []);
@@ -29,8 +28,8 @@ export function DetectorSelect() {
     if (!value) return;
     setSaving(true);
     try {
-      const config = await saveDetector(value);
-      setCurrent(config.model_name);
+      const config = await saveCountingEngine(value);
+      setCurrent(config.engine);
     } finally {
       setSaving(false);
     }
@@ -41,7 +40,7 @@ export function DetectorSelect() {
   return (
     <Select value={current} onValueChange={handleChange} disabled={saving}>
       <SelectTrigger className="h-8 w-[190px] bg-white/10 text-white border-white/20 text-sm">
-        <SelectValue placeholder="Modelo" />
+        <SelectValue placeholder="Engine" />
       </SelectTrigger>
       <SelectContent>
         {options.map((option) => (

@@ -4,6 +4,7 @@ import sqlite3
 from datetime import UTC, datetime, timedelta
 
 from src.config import settings
+from src.counting import DEFAULT_ENGINE
 from src.detector import DEFAULT_DETECTOR
 from src.schemas import (
     CameraResponse,
@@ -48,6 +49,9 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS detector_config (
                 id INTEGER PRIMARY KEY CHECK(id = 1), model_name TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS counting_engine_config (
+                id INTEGER PRIMARY KEY CHECK(id = 1), engine TEXT NOT NULL
+            );
             CREATE INDEX IF NOT EXISTS idx_events_timestamp ON crossing_events(timestamp);
             """
         )
@@ -55,6 +59,26 @@ def init_db() -> None:
             "INSERT OR IGNORE INTO detector_config (id, model_name) VALUES (1, ?)",
             (DEFAULT_DETECTOR,),
         )
+        conn.execute(
+            "INSERT OR IGNORE INTO counting_engine_config (id, engine) VALUES (1, ?)",
+            (DEFAULT_ENGINE,),
+        )
+
+
+def get_counting_engine() -> str:
+    with _connection() as conn:
+        row = conn.execute("SELECT engine FROM counting_engine_config WHERE id = 1").fetchone()
+    return row["engine"] if row else DEFAULT_ENGINE
+
+
+def save_counting_engine(engine: str) -> str:
+    with _connection() as conn:
+        conn.execute(
+            "INSERT INTO counting_engine_config (id, engine) VALUES (1, ?) "
+            "ON CONFLICT(id) DO UPDATE SET engine = excluded.engine",
+            (engine,),
+        )
+    return engine
 
 
 def get_detector_model() -> str:

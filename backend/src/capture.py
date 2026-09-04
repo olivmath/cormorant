@@ -9,8 +9,8 @@ from datetime import UTC, datetime
 import cv2
 
 from src.config import settings
-from src.counter import FootfallCounter
-from src.database import get_detector_model, get_stats, insert_event, update_camera_status
+from src.counting import create_counter
+from src.database import get_counting_engine, get_detector_model, get_stats, insert_event, update_camera_status
 from src.schemas import LiveUpdate
 
 logger = logging.getLogger(__name__)
@@ -26,8 +26,8 @@ class CameraWorker(threading.Thread):
         super().__init__(daemon=True)
         self.camera_config = camera_config
         self.manager = manager
-        self.counter = FootfallCounter(camera_config.line_start, camera_config.line_end,
-                                       detector_name=get_detector_model())
+        self.counter = create_counter(camera_config.line_start, camera_config.line_end,
+                                      get_detector_model(), get_counting_engine())
         self.stop_event = threading.Event()
         self._stop_event = self.stop_event
 
@@ -60,9 +60,11 @@ class CameraWorker(threading.Thread):
 
     def _process(self, frame) -> None:
         detector_name = get_detector_model()
-        if detector_name != self.counter.detector_name:
-            logger.info("🔄 câmera %s trocando modelo: %s → %s", self.camera_config.camera_id, self.counter.detector_name, detector_name)
-            self.counter = FootfallCounter(self.counter.line_start, self.counter.line_end, detector_name=detector_name)
+        engine = get_counting_engine()
+        if detector_name != self.counter.detector_name or engine != self.counter.engine:
+            logger.info("🔄 câmera %s trocando engine/modelo: %s/%s → %s/%s",
+                       self.camera_config.camera_id, self.counter.engine, self.counter.detector_name, engine, detector_name)
+            self.counter = create_counter(self.counter.line_start, self.counter.line_end, detector_name, engine)
         crossings = self.counter.process_frame(frame)
         if crossings:
             logger.info(
