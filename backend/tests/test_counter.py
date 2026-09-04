@@ -53,14 +53,18 @@ def install_vision_fakes(monkeypatch, counts):
             return [object()]
 
     fake_sv = types.SimpleNamespace(
-        ByteTrack=lambda: types.SimpleNamespace(update_with_detections=lambda detections: detections),
+        ByteTrack=lambda **_kwargs: types.SimpleNamespace(update_with_detections=lambda detections: detections),
         LineZone=FakeLineZone,
         Point=lambda x, y: (x, y),
         Detections=types.SimpleNamespace(from_ultralytics=lambda _result: FakeDetections()),
     )
-    monkeypatch.setitem(sys.modules, "ultralytics", types.SimpleNamespace(YOLO=FakeYOLO))
+    monkeypatch.setitem(sys.modules, "ultralytics", types.SimpleNamespace(YOLO=FakeYOLO, RTDETR=FakeYOLO))
     monkeypatch.setitem(sys.modules, "supervision", fake_sv)
-    sys.modules.pop("src.counter", None)
+    # src.counter no longer imports ultralytics directly — it goes through src.detector,
+    # which must also be re-imported fresh so it binds against the fakes above, not
+    # whatever real-or-fake ultralytics module it last saw cached.
+    monkeypatch.delitem(sys.modules, "src.detector", raising=False)
+    monkeypatch.delitem(sys.modules, "src.counter", raising=False)
     return importlib.import_module("src.counter")
 
 

@@ -23,7 +23,12 @@ class FootfallCounter:
         self.inference_size = inference_size
         self._imgsz = resolve_imgsz(inference_size)
         self.model = load_model(detector_name)
-        self.tracker = sv.ByteTrack()
+        # lost_track_buffer raised from the default 30 to 60 processed frames: tolerates
+        # longer gaps in detection (flicker, brief occlusion) before dropping a tracker_id.
+        # NOTE: don't "fix" this by lowering frame_rate to our real ~6fps — frame_rate only
+        # rescales lost_track_buffer (max_time_lost = frame_rate/30 * lost_track_buffer), so
+        # a lower frame_rate makes it LESS tolerant, not more.
+        self.tracker = sv.ByteTrack(lost_track_buffer=60)
         self._point = getattr(sv, "Point", lambda x, y: (x, y))
         self.line_zone = sv.LineZone(start=self._point(*line_start), end=self._point(*line_end))
         self._in_count = 0

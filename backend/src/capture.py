@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import sys
 import threading
 import time
 from datetime import UTC, datetime
@@ -21,6 +22,13 @@ from src.database import (
 from src.schemas import LiveUpdate
 
 logger = logging.getLogger(__name__)
+
+if sys.platform == "darwin":
+    _CAPTURE_BACKEND = cv2.CAP_AVFOUNDATION
+elif sys.platform.startswith("linux"):
+    _CAPTURE_BACKEND = cv2.CAP_V4L2
+else:
+    _CAPTURE_BACKEND = cv2.CAP_ANY
 
 
 class _LivePayload(dict):
@@ -44,7 +52,7 @@ class CameraWorker(threading.Thread):
     def run(self) -> None:
         logger.info("cormorant.capture.starting camera_id=%s label=%s", self.camera_config.camera_id, self.camera_config.label)
         while not self._stop_event.is_set():
-            capture = cv2.VideoCapture(self.camera_config.index, cv2.CAP_AVFOUNDATION)
+            capture = cv2.VideoCapture(self.camera_config.index, _CAPTURE_BACKEND)
             if not capture.isOpened():
                 logger.warning("cormorant.capture.open_failed camera_id=%s index=%s", self.camera_config.camera_id, self.camera_config.index)
                 self._offline()

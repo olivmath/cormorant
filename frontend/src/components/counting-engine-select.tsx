@@ -8,6 +8,10 @@ import { fetchCountingEngine, saveCountingEngine } from "@/lib/api";
 const LABELS: Record<string, string> = {
   custom: "Engine própria",
   ultralytics: "Ultralytics Solutions",
+  centroid: "Centroid Tracker",
+  iou_sort: "IOU SORT (leve)",
+  polygon: "Zona poligonal",
+  dwell: "Dwell debounce",
 };
 
 export function CountingEngineSelect() {
