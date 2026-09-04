@@ -49,7 +49,8 @@ class SolutionsCounter:
 
     def process_frame(self, frame) -> list[dict]:
         results = self._counter.process(np.ascontiguousarray(frame))
-        self.last_people_count = len(getattr(self._counter, "boxes", []) or [])
+        boxes = getattr(self._counter, "boxes", None)
+        self.last_people_count = len(boxes) if boxes is not None else 0
         self.last_tracked_people_count = self.last_people_count
         new_in = max(0, results.in_count - self._prev_in)
         new_out = max(0, results.out_count - self._prev_out)
