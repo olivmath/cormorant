@@ -13,12 +13,17 @@ export function CameraStatus() {
     fetchCameras().then(setCameras).catch(() => setError(true));
   }, []);
 
-  return <section className="flex flex-wrap items-center gap-2" aria-label="Status das câmeras">
-    <span className="mr-1 text-sm font-medium">Câmeras</span>
-    {error ? <span className="text-sm text-red-700">Não foi possível carregar.</span> : !cameras ? <span className="text-sm text-muted-foreground">Carregando…</span> : cameras.map((camera) => (
-      <Badge key={camera.camera_id} className={camera.is_online ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}>
-        <span className={`h-1.5 w-1.5 rounded-full ${camera.is_online ? "bg-emerald-600" : "bg-red-600"}`} />{camera.label}
+  const anyOnline = cameras?.some((camera) => camera.is_online);
+
+  return <section className="flex flex-wrap items-center gap-2" aria-label="Status das câmeras" aria-live="polite">
+    {error ? <span className="text-sm text-[#FFB3B3]">Não foi possível carregar o status da câmera.</span> : !cameras ? <span className="text-sm text-white/70">Verificando câmera…</span> : <>
+      <Badge className={anyOnline ? "border border-[#19C37D]/30 bg-[#19C37D]/15 text-[#8DF0C4]" : "border border-[#FF6B6B]/30 bg-[#FF6B6B]/15 text-[#FFB3B3]"}>
+        <span className={`h-1.5 w-1.5 rounded-full ${anyOnline ? "bg-[#19C37D]" : "bg-[#FF6B6B]"}`} />
+        {anyOnline ? "Câmera online" : "Câmera offline"}
       </Badge>
-    ))}
+      {cameras.map((camera) => (
+        <span key={camera.camera_id} className="text-xs text-white/65">{camera.label}</span>
+      ))}
+    </>}
   </section>;
 }
