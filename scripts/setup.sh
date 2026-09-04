@@ -3,6 +3,17 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
+if command -v apt-get >/dev/null 2>&1; then
+    export DEBIAN_FRONTEND=noninteractive
+    if command -v sudo >/dev/null 2>&1; then
+        sudo apt-get update
+        sudo apt-get install -y libgl1
+    else
+        apt-get update
+        apt-get install -y libgl1
+    fi
+fi
+
 echo "=== Backend setup ==="
 cd "$REPO_ROOT/backend"
 if command -v uv &>/dev/null; then
