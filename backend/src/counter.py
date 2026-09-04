@@ -46,6 +46,14 @@ class FootfallCounter:
         )
         detections = self.tracker.update_with_detections(detections)
         self.last_tracked_people_count = len(detections)
+        if self.last_tracked_people_count > 0:
+            xyxy = detections.xyxy[0]
+            cx = (xyxy[0] + xyxy[2]) / 2
+            cy = (xyxy[1] + xyxy[3]) / 2
+            logger.debug(
+                "cormorant.counter.tracker cx=%.1f cy=%.1f bbox=[%.0f,%.0f,%.0f,%.0f] tid=%s",
+                cx, cy, *xyxy, detections.tracker_id[0],
+            )
         triggered = self.line_zone.trigger(detections)
         entered, exited = self._triggered_detections(detections, triggered)
         if len(entered) or len(exited):

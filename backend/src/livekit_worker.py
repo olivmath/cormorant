@@ -34,6 +34,9 @@ class LiveKitWorker:
             is_mobile_video,
         )
         if is_mobile_video:
+            if self.task and not self.task.done():
+                logger.info("cormorant.livekit.cancelling_previous_task")
+                self.task.cancel()
             self.task = asyncio.create_task(self._consume(track))
 
     async def _consume(self, track) -> None:
