@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CameraLiveProvider } from "@/components/camera-context";
 import { CameraStatus } from "@/components/camera-status";
 import { DailyChart } from "@/components/daily-chart";
@@ -16,7 +17,15 @@ export default function Home() {
               <h1 className="text-lg font-semibold tracking-tight">CORMORANT</h1>
               <span className="text-sm text-white/60">Loja principal</span>
             </div>
-            <CameraStatus />
+            <div className="flex items-center gap-3">
+              <CameraStatus />
+              <Link
+                href="/camera"
+                className="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium hover:bg-white/20 transition-colors"
+              >
+                Câmera
+              </Link>
+            </div>
           </header>
 
           <TodayKpi />
