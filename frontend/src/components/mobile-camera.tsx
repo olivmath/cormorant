@@ -8,24 +8,41 @@ import { requestLiveKitToken } from "@/lib/api";
 
 export function MobileCamera() {
   const room = useRef<Room | null>(null);
+  const operation = useRef(0);
   const [message, setMessage] = useState("Pronto para iniciar a câmera.");
   const [live, setLive] = useState(false);
 
   useEffect(() => () => {
+    operation.current += 1;
     void room.current?.disconnect();
   }, []);
 
   async function start() {
+    const currentOperation = ++operation.current;
+    let nextRoom: Room | null = null;
+
     try {
       setMessage("Conectando à câmera…");
       const credentials = await requestLiveKitToken("publisher");
-      const nextRoom = new Room();
+      if (currentOperation !== operation.current) return;
+
+      nextRoom = new Room();
       room.current = nextRoom;
       await nextRoom.connect(credentials.server_url, credentials.token);
+      if (currentOperation !== operation.current) {
+        await nextRoom.disconnect();
+        return;
+      }
+
       await nextRoom.localParticipant.setCameraEnabled(true, { facingMode: "environment" });
       setLive(true);
       setMessage("Câmera ao vivo. Mantenha esta página aberta.");
     } catch (error) {
+      if (currentOperation !== operation.current) return;
+      if (room.current === nextRoom) {
+        room.current = null;
+        void nextRoom?.disconnect();
+      }
       setMessage(error instanceof Error && error.message === "LiveKit is not configured"
         ? "Servidor de vídeo não configurado. Contate o administrador."
         : "Não foi possível iniciar. Verifique a permissão da câmera.");
@@ -33,7 +50,8 @@ export function MobileCamera() {
   }
 
   function stop() {
-    room.current?.disconnect();
+    operation.current += 1;
+    void room.current?.disconnect();
     room.current = null;
     setLive(false);
     setMessage("Transmissão encerrada.");

@@ -25,9 +25,12 @@ export function LiveCamera() {
 
     const room = new Room();
     let hasVideo = false;
+    let active = true;
 
     requestLiveKitToken("viewer")
       .then(async ({ server_url, token }) => {
+        if (!active) return;
+
         room.on(RoomEvent.TrackSubscribed, (track) => {
           if (track.kind === Track.Kind.Video && video.current) {
             track.attach(video.current);
@@ -39,11 +42,15 @@ export function LiveCamera() {
 
         await room.connect(server_url, token);
 
-        if (!hasVideo) setStatus("Aguardando transmissão do celular");
+        if (active && !hasVideo) setStatus("Aguardando transmissão do celular");
       })
-      .catch(() => setStatus("Não foi possível conectar ao vídeo. Verifique o LiveKit."));
+      .catch(() => {
+        if (active) setStatus("Não foi possível conectar ao vídeo. Verifique o LiveKit.");
+      });
 
     return () => {
+      active = false;
+      setCameraLive(false);
       void room.disconnect();
     };
   }, [setCameraLive]);
