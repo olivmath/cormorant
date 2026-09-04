@@ -61,11 +61,16 @@ class FootfallCounter:
         if isinstance(triggered, tuple) and len(triggered) == 2:
             incoming, outgoing = triggered
             if hasattr(incoming, "__len__") and len(incoming) == len(detections):
-                return detections[incoming], detections[outgoing]
+                return self._detections_at(detections, incoming, is_mask=True), self._detections_at(detections, outgoing, is_mask=True)
         current_in, current_out = self.line_zone.in_count, self.line_zone.out_count
         new_in, new_out = max(0, current_in - self._in_count), max(0, current_out - self._out_count)
         self._in_count, self._out_count = current_in, current_out
-        return detections[:new_in], detections[:new_out]
+        return self._detections_at(detections, range(new_in)), self._detections_at(detections, range(new_out))
+
+    @staticmethod
+    def _detections_at(detections, mask_or_indices, is_mask=False):
+        indices = [index for index, selected in enumerate(mask_or_indices) if selected] if is_mask else mask_or_indices
+        return [detections[index:index + 1] for index in indices]
 
     @staticmethod
     def _event(direction: str, detection) -> dict:

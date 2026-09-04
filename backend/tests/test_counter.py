@@ -78,3 +78,19 @@ def test_new_line_zone_crossing_becomes_a_directional_event(monkeypatch, counts,
     assert events == [
         {"direction": expected_direction, "tracker_id": 31, "confidence": 0.87}
     ]
+
+
+def test_line_zone_masks_produce_detection_objects(monkeypatch):
+    counter_module = install_vision_fakes(monkeypatch, [(0, 0)])
+    counter = counter_module.FootfallCounter((0, 10), (100, 10))
+
+    entered, exited = counter._triggered_detections(
+        FakeDetections(), ([True], [False])
+    )
+
+    assert counter_module.FootfallCounter._event("IN", entered[0]) == {
+        "direction": "IN",
+        "tracker_id": 31,
+        "confidence": 0.87,
+    }
+    assert exited == []
