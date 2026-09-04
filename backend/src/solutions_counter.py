@@ -46,6 +46,7 @@ class SolutionsCounter:
         self._prev_in = 0
         self._prev_out = 0
         self._next_id = 0
+        self._frame_count = 0
         self.last_people_count = 0
         self.last_tracked_people_count = 0
 
@@ -65,10 +66,21 @@ class SolutionsCounter:
         self._prev_out = 0
 
     def process_frame(self, frame) -> list[dict]:
+        self._frame_count += 1
         results = self._counter.process(np.ascontiguousarray(frame))
         boxes = getattr(self._counter, "boxes", None)
         self.last_people_count = len(boxes) if boxes is not None else 0
         self.last_tracked_people_count = self.last_people_count
+        if self.last_people_count > 0 and self._frame_count % 15 == 0:
+            x1, y1, x2, y2 = (float(v) for v in boxes[0][:4])
+            cx = (x1 + x2) / 2
+            band_min_x = min(pt[0] for pt in self._counter.region)
+            band_max_x = max(pt[0] for pt in self._counter.region)
+            inside = "dentro da faixa ✅" if band_min_x <= cx <= band_max_x else "fora da faixa"
+            logger.info(
+                "🚶 [%s/solutions] pessoa vista: posição x=%.0f | faixa=[%.0f,%.0f] | %s",
+                self.detector_name, cx, band_min_x, band_max_x, inside,
+            )
         new_in = max(0, results.in_count - self._prev_in)
         new_out = max(0, results.out_count - self._prev_out)
         self._prev_in, self._prev_out = results.in_count, results.out_count
